@@ -86,9 +86,14 @@ class MainWindow(ctk.CTk):
                 fila_actual += 1
 
     def _mesa_seleccionada(self, id_mesa: str | int) -> None:
-        """Punto de captura del evento clic de una mesa. Conectará con el menú de pedidos."""
-        print(f"DEBUG: Se hizo clic en la Mesa {id_mesa}")
-        # En el siguiente paso abriremos aquí el menú de: Agregar producto, Inspeccionar, Imprimir.
+        """Punto de captura del evento clic. Instancia la ventana de pedidos acoplada."""
+        from views.order_window import OrderWindow
+        # Instanciamos la modal pasándole 'self' (MainWindow) como el padre visual
+        OrderWindow(parent=self, controlador=self.controlador, id_mesa=id_mesa)
+        
+        # Hito de sincronización reactiva: Cuando se cierre la ventana de pedidos,
+        # obligamos a la pantalla principal a refrescarse para actualizar los colores (Verde -> Rojo)
+        self.master.after(200, self._renderizar_mesas)
 
     def _accion_agregar_mesa(self) -> None:
         """Pregunta el número de la nueva mesa y le ordena al controlador registrarla."""
