@@ -1,11 +1,44 @@
 class Producto:
     """Representa un producto individual dentro del menú del restaurante."""
     
-    def __init__(self, id_producto: int, nombre: str, precio: float, categoria: str):
+    def __init__(
+        self, 
+        id_producto: int, 
+        nombre: str, 
+        precio: float, 
+        categoria: str,
+        area_impresion: str = "Cocina",  # Posibles valores: 'Caja', 'Cocina', 'Carnes'
+        requiere_configuracion_carne: bool = False
+    ):
         self.id: int = id_producto
         self.nombre: str = nombre
         self.precio: float = precio
-        self.categoria: str = categoria  # Ejemplo: 'Bebidas', 'Carnes', 'Platillos'
+        self.categoria: str = categoria  # 'Bebidas', 'Carnes', 'Platillos', 'Ejecutivo', 'Icopor'
+        self.area_impresion: str = area_impresion
+        self.requiere_configuracion_carne: bool = requiere_configuracion_carne
+
+    def a_diccionario(self) -> dict:
+        """Convierte el objeto Producto a un diccionario para serialización JSON."""
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "precio": self.precio,
+            "categoria": self.categoria,
+            "area_impresion": self.area_impresion,
+            "requiere_configuracion_carne": self.requiere_configuracion_carne
+        }
+
+    @classmethod
+    def desde_diccionario(cls, datos: dict) -> 'Producto':
+        """Reconstruye un objeto Producto desde un diccionario JSON."""
+        return cls(
+            id_producto=datos["id"],
+            nombre=datos["nombre"],
+            precio=datos["precio"],
+            categoria=datos["categoria"],
+            area_impresion=datos.get("area_impresion", "Cocina"),
+            requiere_configuracion_carne=datos.get("requiere_configuracion_carne", False)
+        )
 
 
 class ItemPedido:
@@ -72,52 +105,33 @@ class Mesa:
         self.estado = "Libre"
 
 class Restaurante:
-    """Clase contenedora maestra que gestiona el menú fijo y las mesas dinámicas."""
+    """Contenedor maestro que gestiona las mesas dinámicas y el menú del establecimiento."""
     
-    def __init__(self):
-        # Diccionario dinámico para soportar infinitas mesas {id_mesa: ObjetoMesa}
+    def __init__(self, menu_inicial: list[Producto] | None = None):
+        # Diccionario dinámico {id_mesa: ObjetoMesa}
         self.mesas: dict[str | int, Mesa] = {}
-        # Lista fija que representará el menú oficial de "El Rancho de Javi"
-        self.menu: list[Producto] = []
+        # Menú dinámico alimentado externamente desde menu_data.json
+        self.menu: list[Producto] = menu_inicial if menu_inicial is not None else []
         
-        # Ejecutamos los métodos de inicialización por defecto al instanciar la clase
-        self._cargar_menu_predeterminado()
         self._cargar_mesas_iniciales()
 
-    def _cargar_menu_predeterminado(self) -> None:
-        """Pobla el menú con los productos fijos divididos por categorías."""
-        # Categorías requeridas: Bebidas, Carnes, Platillos
-        productos_base = [
-            # Bebidas
-            Producto(1, "Coca-Cola", 2.50, "Bebidas"),
-            Producto(2, "Jugo Natural", 3.00, "Bebidas"),
-            Producto(3, "Agua Mineral", 1.50, "Bebidas"),
-            # Carnes
-            Producto(4, "Filete de Res", 15.00, "Carnes"),
-            Producto(5, "Costillas BBQ", 14.50, "Carnes"),
-            # Platillos
-            Producto(6, "Tacos Especiales", 8.50, "Platillos"),
-            Producto(7, "Hamburguesa de la Casa", 10.00, "Platillos")
-        ]
-        self.menu.extend(productos_base)
-
     def _cargar_mesas_iniciales(self) -> None:
-        """Inicializa las primeras 5 mesas requeridas para el MVP."""
+        """Inicializa las primeras mesas requeridas."""
         for i in range(1, 6):
             self.agregar_nueva_mesa(i)
 
     def agregar_nueva_mesa(self, id_mesa: str | int) -> bool:
-        """Agrega una nueva mesa de forma dinámica. Retorna False si ya existe."""
+        """Agrega una nueva mesa. Retorna False si ya existe."""
         if id_mesa in self.mesas:
-            return False  # Evitamos duplicar o sobreescribir una mesa activa
-        
+            return False
         self.mesas[id_mesa] = Mesa(id_mesa)
         return True
 
     def obtener_menu_por_categoria(self) -> dict[str, list[Producto]]:
-        """Organiza y retorna el menú agrupado por sus categorías para facilitar la vista."""
-        categorias: dict[str, list[Producto]] = {"Bebidas": [], "Carnes": [], "Platillos": []}
+        """Agrupa los productos dinámicamente según las categorías presentes en el menú."""
+        categorias: dict[str, list[Producto]] = {}
         for producto in self.menu:
-            if producto.categoria in categorias:
-                categorias[producto.categoria].append(producto)
+            if producto.categoria not in categorias:
+                categorias[producto.categoria] = []
+            categorias[producto.categoria].append(producto)
         return categorias
