@@ -42,33 +42,48 @@ class Producto:
 
 
 class ItemPedido:
-    """Representa una línea dentro del pedido de una mesa (Producto + Cantidad)."""
+    """Representa una línea del pedido con soporte para opción de carne y observaciones."""
 
-    def __init__(self, producto: Producto, cantidad: int = 1):
+    def __init__(
+        self, 
+        producto: Producto, 
+        cantidad: int = 1, 
+        opcion_carne: str | None = None, 
+        observaciones: list[str] | None = None
+    ):
         self.producto: Producto = producto
         self.cantidad: int = cantidad
+        self.opcion_carne: str | None = opcion_carne
+        self.observaciones: list[str] = observaciones if observaciones is not None else []
 
     def calcular_subtotal(self) -> float:
         return self.producto.precio * self.cantidad
 
     def a_diccionario(self) -> dict:
-        """Convierte la línea del pedido a un diccionario para guardar en JSON."""
+        """Serializa la línea del pedido incluyendo detalles de preparación."""
         return {
             "producto_id": self.producto.id,
-            "cantidad": self.cantidad
+            "cantidad": self.cantidad,
+            "opcion_carne": self.opcion_carne,
+            "observaciones": self.observaciones
         }
 
     @classmethod
     def desde_diccionario(cls, datos: dict, menu_disponible: list[Producto]) -> 'ItemPedido | None':
-        """Reconstruye un ItemPedido buscando el producto por su ID en el menú."""
         prod_id = datos.get("producto_id")
         cantidad = datos.get("cantidad", 1)
+        opcion_carne = datos.get("opcion_carne", None)
+        observaciones = datos.get("observaciones", [])
         
-        # Buscamos el producto en el catálogo actual
         producto_encontrado = next((p for p in menu_disponible if p.id == prod_id), None)
         
         if producto_encontrado:
-            return cls(producto=producto_encontrado, cantidad=cantidad)
+            return cls(
+                producto=producto_encontrado, 
+                cantidad=cantidad, 
+                opcion_carne=opcion_carne, 
+                observaciones=observaciones
+            )
         return None
     
 class Mesa:
@@ -82,15 +97,29 @@ class Mesa:
         self.es_vip: bool = es_vip
         self.hora_apertura: str | None = None
 
-    def agregar_producto(self, producto: Producto, cantidad: int = 1) -> None:
+    def agregar_producto(
+        self, 
+        producto: Producto, 
+        cantidad: int = 1, 
+        opcion_carne: str | None = None, 
+        observacion: str | None = None
+    ) -> None:
         if self.estado == "Libre":
             self.estado = "Ocupada"
             
+        # Si el producto coincide en ID, opción de carne y no trae nueva observación, incrementamos cantidad
         for item in self.items:
-            if item.producto.id == producto.id:
+            if (item.producto.id == producto.id and 
+                item.opcion_carne == opcion_carne and 
+                not observacion):
                 item.cantidad += cantidad
                 return
-        self.items.append(ItemPedido(producto, cantidad))
+
+        # De lo contrario, se crea una línea independiente en el pedido
+        nuevo_item = ItemPedido(producto, cantidad, opcion_carne)
+        if observacion:
+            nuevo_item.observaciones.append(observacion)
+        self.items.append(nuevo_item)
 
     def modificar_cantidad(self, producto_id: int, nueva_cantidad: int) -> None:
         for item in self.items:
@@ -133,13 +162,12 @@ class Mesa:
         mesa.estado = datos.get("estado", "Libre")
         mesa.hora_apertura = datos.get("hora_apertura", None)
         
-        productos_map = {p.id: p for p in menu_disponible}
+        # CORRECCIÓN AQUÍ: Usamos ItemPedido.desde_diccionario para reconstruir con carnes y notas
         for item_dict in datos.get("items", []):
-            prod_id = item_dict["producto_id"]
-            if prod_id in productos_map:
-                prod = productos_map[prod_id]
-                cant = item_dict["cantidad"]
-                mesa.items.append(ItemPedido(prod, cant))
+            item_obj = ItemPedido.desde_diccionario(item_dict, menu_disponible)
+            if item_obj:
+                mesa.items.append(item_obj)
+                
         return mesa
 
 
