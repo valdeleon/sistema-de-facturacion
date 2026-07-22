@@ -31,27 +31,27 @@ class MenuService:
             print(f"Error crítico al guardar {self.ruta_archivo}: {e}")
 
     def _generar_menu_predeterminado(self) -> list[Producto]:
-        """Crea la estructura inicial del menú con categorías y áreas de impresión asignadas."""
+        """Crea la estructura inicial del menú con precios en Pesos Colombianos ($COP)."""
         menu_inicial = [
-            # Bebidas (Área: Caja / Cocina)
-            Producto(1, "Coca-Cola", 2.50, "Bebidas", area_impresion="Caja"),
-            Producto(2, "Jugo Natural", 3.00, "Bebidas", area_impresion="Cocina"),
-            Producto(3, "Agua Mineral", 1.50, "Bebidas", area_impresion="Caja"),
+            # Bebidas
+            Producto(1, "Gaseosa 350ml", 3500, "Bebidas", area_impresion="Caja"),
+            Producto(2, "Jugo Natural", 5000, "Bebidas", area_impresion="Cocina"),
+            Producto(3, "Agua Mineral", 2500, "Bebidas", area_impresion="Caja"),
             
-            # Carnes (Área: Carnes - Requieren configuración)
-            Producto(4, "Carne Llanera 300g", 15.00, "Carnes", area_impresion="Carnes", requiere_configuracion_carne=True),
-            Producto(5, "Costillas BBQ", 14.50, "Carnes", area_impresion="Carnes", requiere_configuracion_carne=False),
+            # Carnes
+            Producto(4, "Carne Llanera 300g", 28000, "Carnes", area_impresion="Carnes", requiere_configuracion_carne=True),
+            Producto(5, "Costillas BBQ", 32000, "Carnes", area_impresion="Carnes", requiere_configuracion_carne=False),
             
-            # Platillos (Área: Cocina)
-            Producto(6, "Tacos Especiales", 8.50, "Platillos", area_impresion="Cocina"),
-            Producto(7, "Hamburguesa de la Casa", 10.00, "Platillos", area_impresion="Cocina"),
+            # Platillos
+            Producto(6, "Picada Familiar", 45000, "Platillos", area_impresion="Cocina"),
+            Producto(7, "Hamburguesa de la Casa", 18000, "Platillos", area_impresion="Cocina"),
             
-            # Ejecutivo (Menú especial)
-            Producto(8, "Ejecutivo del Día", 12.00, "Ejecutivo", area_impresion="Cocina"),
+            # Ejecutivo
+            Producto(8, "Ejecutivo del Día", 16000, "Ejecutivo", area_impresion="Cocina"),
             
-            # Icopor (Empaques)
-            Producto(9, "Icopor Pequeño", 0.50, "Icopor", area_impresion="Caja"),
-            Producto(10, "Icopor Grande", 1.00, "Icopor", area_impresion="Caja")
+            # Icopor
+            Producto(9, "Icopor Pequeño", 1000, "Icopor", area_impresion="Caja"),
+            Producto(10, "Icopor Grande", 2000, "Icopor", area_impresion="Caja")
         ]
         
         self.guardar_menu(menu_inicial)

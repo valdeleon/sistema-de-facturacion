@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from utils.formatters import formatear_cop
 from controllers.main_controller import MainController
 
 class OrderWindow(ctk.CTkToplevel):
@@ -59,12 +60,23 @@ class OrderWindow(ctk.CTkToplevel):
         self.frame_items_pedido = ctk.CTkScrollableFrame(self.frame_derecho, height=350)
         self.frame_items_pedido.pack(fill="both", expand=True, padx=15, pady=5)
 
-        # Panel inferior para el total monetario
+        # Panel inferior para el total monetario y el botón de facturar
         self.frame_total = ctk.CTkFrame(self.frame_derecho, height=60, fg_color="transparent")
         self.frame_total.pack(fill="x", side="bottom", padx=15, pady=15)
 
         self.lbl_total = ctk.CTkLabel(self.frame_total, text="TOTAL: $0.00", font=("Arial", 18, "bold"), anchor="w")
         self.lbl_total.pack(side="left", padx=10)
+
+        # Botón corporativo para procesar el cobro y liberar la mesa (Fase 15)
+        self.btn_facturar = ctk.CTkButton(
+            self.frame_total,
+            text="Facturar y Cerrar",
+            font=("Arial", 13, "bold"),
+            fg_color="#27ae60", # Verde corporativo de cobro exitoso
+            hover_color="#219653",
+            command=self._procesar_facturacion
+        )
+        self.btn_facturar.pack(side="right", padx=10)
 
         # Renderizamos por primera vez las filas del ticket acumulado
         self._actualizar_vista_ticket()
@@ -74,7 +86,8 @@ class OrderWindow(ctk.CTkToplevel):
         frame_fila = ctk.CTkFrame(contenedor, fg_color="transparent")
         frame_fila.pack(fill="x", pady=4, padx=5)
 
-        texto_item = f"{producto.nombre}  -  ${producto.precio:.2f}"
+        # Usamos el formateador COP
+        texto_item = f"{producto.nombre}  -  {formatear_cop(producto.precio)}"
         lbl_producto = ctk.CTkLabel(frame_fila, text=texto_item, font=("Arial", 13))
         lbl_producto.pack(side="left", padx=5)
 
@@ -98,10 +111,10 @@ class OrderWindow(ctk.CTkToplevel):
             frame_item = ctk.CTkFrame(self.frame_items_pedido, height=40)
             frame_item.pack(fill="x", pady=3, padx=2)
 
-            # Información del consumo estructurada
-            info_texto = f"{item.cantidad}x {item.producto.nombre} (${item.calcular_subtotal():.2f})"
-            lbl_info = ctk.CTkLabel(frame_item, text=info_texto, font=("Arial", 12))
-            lbl_info.pack(side="left", padx=10, pady=5)
+            # Información del consumo formateada en COP
+            info_texto = f"{item.cantidad}x {item.producto.nombre} ({formatear_cop(item.calcular_subtotal())})"
+            lbl_info = ctk.CTkLabel(frame_item, text=lbl_info_txt if 'lbl_info_txt' in locals() else info_texto, font=("Arial", 12))
+            lbl_info.pack(side="left", padx=10, pady=5) 
 
             # Botones de control de cantidad reactivos (+ / -)
             btn_menos = ctk.CTkButton(
@@ -117,7 +130,7 @@ class OrderWindow(ctk.CTkToplevel):
             btn_mas.pack(side="right", padx=2)
 
         # Actualizamos la etiqueta del total formateada a dos decimales
-        self.lbl_total.configure(text=f"TOTAL: ${mesa_actual.calcular_total():.2f}")
+        self.lbl_total.configure(text=f"TOTAL: {formatear_cop(mesa_actual.calcular_total())}")
 
     def _añadir_producto(self, producto) -> None:
         """Impacta la lógica a través del controlador y refresca el ticket de inmediato."""
@@ -128,3 +141,46 @@ class OrderWindow(ctk.CTkToplevel):
         """Modifica las unidades de un consumo y actualiza la pantalla en consecuencia."""
         self.controlador.modificar_cantidad_en_mesa(self.id_mesa, producto_id, nueva_cantidad)
         self._actualizar_vista_ticket()
+
+    def _procesar_facturacion(self) -> None:
+        """Genera el ticket en pantalla, limpia la mesa en la RAM/JSON y cierra la modal."""
+        from tkinter import messagebox
+
+        mesas = self.controlador.obtener_todas_las_mesas()
+        mesa_actual = mesas[self.id_mesa]
+
+        # Validación de seguridad corporativa: No se puede facturar una mesa vacía
+        if not mesa_actual.items:
+            messagebox.showwarning("Operación Inválida", "No se puede facturar una mesa que no registra consumos.")
+            return
+
+        # Estructuración visual del ticket (Simulación de impresión física)
+        lineas_ticket = [
+            "==================================",
+            "        EL RANCHO DE JAVI         ",
+            "     TICKET DE FACTURACIÓN        ",
+            f"Mesa: {self.id_mesa}",
+            "==================================",
+            "Cant.  Producto             Subtotal"
+        ]
+
+        for item in mesa_actual.items:
+            nombre_formateado = item.producto.nombre.ljust(18)[:18]
+            subtotal_txt = formatear_cop(item.calcular_subtotal())
+            lineas_ticket.append(f"{item.cantidad}x     {nombre_formateado}  {subtotal_txt}")
+
+        lineas_ticket.append("==================================")
+        lineas_ticket.append(f"TOTAL COBRADO:        {formatear_cop(mesa_actual.calcular_total())}")
+        lineas_ticket.append("==================================")
+        lineas_ticket.append("    ¡Gracias por su preferencia!  ")
+        
+        texto_final_ticket = "\n".join(lineas_ticket)
+
+        # 1. Mostramos el ticket impreso en pantalla
+        messagebox.showinfo(f"Factura Emitida - Mesa {self.id_mesa}", texto_final_ticket)
+
+        # 2. Ordenamos al controlador limpiar la mesa en RAM y sobreescribir el JSON
+        self.controlador.liberar_mesa(self.id_mesa)
+
+        # 3. Destruimos esta ventana emergente de forma segura
+        self.destroy()
