@@ -54,3 +54,17 @@ class MainController:
         if exito:
             self.servicio_json.guardar_estado(self.restaurante.mesas)
         return exito
+    
+    def crear_nueva_mesa_dinamica(self, id_mesa: str | int, es_vip: bool = False) -> bool:
+        """Añade una mesa temporal tradicional o VIP."""
+        exito = self.restaurante.agregar_nueva_mesa(id_mesa, es_vip=es_vip)
+        if exito:
+            self.servicio_json.guardar_estado(self.restaurante.mesas)
+        return exito
+
+    def eliminar_mesa_dinamica(self, id_mesa: str | int) -> tuple[bool, str]:
+        """Elimina una mesa dinámica si cumple las condiciones de seguridad."""
+        exito, mensaje = self.restaurante.eliminar_mesa(id_mesa)
+        if exito:
+            self.servicio_json.guardar_estado(self.restaurante.mesas)
+        return exito, mensaje
