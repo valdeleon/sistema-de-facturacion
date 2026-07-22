@@ -1,3 +1,5 @@
+from datetime import datetime
+
 class Producto:
     """Representa un producto individual dentro del menú del restaurante."""
     
@@ -106,6 +108,8 @@ class Mesa:
     ) -> None:
         if self.estado == "Libre":
             self.estado = "Ocupada"
+            # Registramos la fecha/hora actual en formato ISO estándar
+            self.hora_apertura = datetime.now().isoformat()
             
         # Si el producto coincide en ID, opción de carne y no trae nueva observación, incrementamos cantidad
         for item in self.items:
